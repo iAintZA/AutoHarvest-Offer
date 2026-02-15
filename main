@@ -106,7 +106,40 @@ for _, plant in ipairs(plantsFolder:GetChildren()) do
         task.wait(2)
         game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services"):WaitForChild("PlantService"):WaitForChild("RF"):WaitForChild("ClaimHarvest"):InvokeServer(plant.Name)
         task.wait(2)
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services"):WaitForChild("ShrineService"):WaitForChild("RF"):WaitForChild("ProcessOffering"):InvokeServer(plant.Name)
+        
+        --------------------------------------------------
+        -- Find the "Harvest" tool in the player's Backpack
+        --------------------------------------------------
+
+        local backpack = player:WaitForChild("Backpack")
+        local harvestTool = nil
+
+        for _, item in ipairs(backpack:GetChildren()) do
+            if item:IsA("Tool") and item.ToolTip == "Harvest" then
+                harvestTool = item
+                break -- stop after finding the first one
+            end
+        end
+
+        local inventoryItemId = nil
+
+        if harvestTool then
+            inventoryItemId = harvestTool:GetAttribute("InventoryItemId")
+            print("Harvest tool InventoryItemId:", inventoryItemId)
+        else
+            warn("No tool with ToolTip 'Harvest' found in backpack.")
+        end
+
+        --------------------------------------------------
+        -- Use InventoryItemId for ProcessOffering instead of plant.Name
+        --------------------------------------------------
+
+        if inventoryItemId then
+            Knit.Services.ShrineService.RF.ProcessOffering:InvokeServer(inventoryItemId)
+        else
+            warn("Cannot process offering: InventoryItemId missing.")
+        end
+        
         teleportTo(Vector3.new(-395.85, 14.22, 177.90))
         -- Stop after first teleport
         break
