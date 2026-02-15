@@ -110,34 +110,39 @@ for _, plant in ipairs(plantsFolder:GetChildren()) do
         --------------------------------------------------
         -- Find the "Harvest" tool in the player's Backpack
         --------------------------------------------------
-
+        
         local backpack = player:WaitForChild("Backpack")
         local harvestTool = nil
-
+        
         for _, item in ipairs(backpack:GetChildren()) do
-            if item:IsA("Tool") and item.ToolTip == "Harvest" then
-                harvestTool = item
-                break -- stop after finding the first one
-            end
+        	if item:IsA("Tool") and item.ToolTip == "Harvest" then
+        		harvestTool = item
+        		break -- stop after finding the first one
+        	end
         end
-
+        
         local inventoryItemId = nil
-
+        
         if harvestTool then
-            inventoryItemId = harvestTool:GetAttribute("InventoryItemId")
-            print("Harvest tool InventoryItemId:", inventoryItemId)
+        	inventoryItemId = harvestTool:GetAttribute("InventoryItemId")
+        	print("Harvest tool InventoryItemId:", inventoryItemId)
         else
-            warn("No tool with ToolTip 'Harvest' found in backpack.")
+        	warn("No tool with ToolTip 'Harvest' found in backpack.")
         end
-
+        
         --------------------------------------------------
-        -- Use InventoryItemId for ProcessOffering instead of plant.Name
+        -- Use InventoryItemId for ProcessOffering with proper args format
         --------------------------------------------------
-
+        
         if inventoryItemId then
-            Knit.Services.ShrineService.RF.ProcessOffering:InvokeServer(inventoryItemId)
+        	local args = {
+        		{ inventoryItemId }
+        	}
+        
+        	Knit.Services.ShrineService.RF.ProcessOffering:InvokeServer(unpack(args))
+        	print("Processed offering for InventoryItemId:", inventoryItemId)
         else
-            warn("Cannot process offering: InventoryItemId missing.")
+        	warn("Cannot process offering: InventoryItemId missing.")
         end
         
         teleportTo(Vector3.new(-395.85, 14.22, 177.90))
