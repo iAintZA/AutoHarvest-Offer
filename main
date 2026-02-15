@@ -1,0 +1,114 @@
+--------------------------------------------------
+-- Services
+--------------------------------------------------
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local userId = player.UserId
+
+--------------------------------------------------
+-- Knit
+--------------------------------------------------
+
+local Knit =
+    ReplicatedStorage.Packages._Index["sleitnick_knit@1.7.0"].knit
+
+--------------------------------------------------
+-- Folders
+--------------------------------------------------
+
+local plotsFolder = workspace:WaitForChild("Scripted"):WaitForChild("Plots")
+local harvestContainer =
+    workspace:WaitForChild("Scripted"):WaitForChild("PlantHarvestContainer")
+
+--------------------------------------------------
+-- Teleport Function
+--------------------------------------------------
+
+local function teleportTo(pos)
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
+    -- Small Y offset to avoid clipping
+    hrp.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
+end
+
+--------------------------------------------------
+-- Find Player Plot
+--------------------------------------------------
+
+local playerPlot = nil
+
+for _, plot in ipairs(plotsFolder:GetChildren()) do
+    local ownerId = plot:GetAttribute("OwnerId")
+    if ownerId == userId then
+        playerPlot = plot
+        break
+    end
+end
+
+if not playerPlot then
+    warn("No plot found for player:", userId)
+    return
+end
+
+--------------------------------------------------
+-- Get Plants Folder
+--------------------------------------------------
+
+local plantsFolder =
+    playerPlot:WaitForChild("Scripted"):WaitForChild("Plants")
+
+--------------------------------------------------
+-- Find First High-Yield Plant & Teleport
+--------------------------------------------------
+
+for _, plant in ipairs(plantsFolder:GetChildren()) do
+    -- Read UnclaimedHarvest
+    local unclaimed = plant:GetAttribute("UnclaimedHarvest")
+
+    if type(unclaimed) == "number" and unclaimed > 1000 then
+        print("High Yield Plant Found:", plant.Name, unclaimed)
+
+        --------------------------------------------------
+        -- Find Matching Container Using Plant Name
+        --------------------------------------------------
+
+        local container = harvestContainer:FindFirstChild(plant.Name)
+        if not container then
+            warn("No container found for:", plant.Name)
+            continue
+        end
+
+        --------------------------------------------------
+        -- Get Container Position
+        --------------------------------------------------
+
+        local position
+
+        if container:IsA("BasePart") then
+            position = container.Position
+        elseif container:IsA("Model") then
+            position = container:GetPivot().Position
+        else
+            warn("Unsupported container type:", container.ClassName)
+            continue
+        end
+
+        --------------------------------------------------
+        -- Teleport to fruit and harvest
+        --------------------------------------------------
+
+        print("Teleporting to:", plant.Name)
+        teleportTo(position)
+        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services"):WaitForChild("PlantService"):WaitForChild("RF"):WaitForChild("ClaimHarvest"):InvokeServer(plant.Name)
+        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services"):WaitForChild("ShrineService"):WaitForChild("RF"):WaitForChild("ProcessOffering"):InvokeServer(plant.Name)
+        teleportTo(Vector3.new(-395.85, 14.22, 177.90))
+        -- Stop after first teleport
+        break
+    end
+end
+
+print("Teleport scan finished.")
