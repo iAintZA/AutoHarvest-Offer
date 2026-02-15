@@ -103,7 +103,9 @@ for _, plant in ipairs(plantsFolder:GetChildren()) do
 
         print("Teleporting to:", plant.Name)
         teleportTo(position)
+        task.wait(2)
         game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services"):WaitForChild("PlantService"):WaitForChild("RF"):WaitForChild("ClaimHarvest"):InvokeServer(plant.Name)
+        task.wait(2)
         game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services"):WaitForChild("ShrineService"):WaitForChild("RF"):WaitForChild("ProcessOffering"):InvokeServer(plant.Name)
         teleportTo(Vector3.new(-395.85, 14.22, 177.90))
         -- Stop after first teleport
