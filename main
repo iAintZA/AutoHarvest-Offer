@@ -30,121 +30,137 @@ local function teleportTo(pos)
 end
 
 --------------------------------------------------
--- Find Player Plot
+-- Harvest Routine
 --------------------------------------------------
-local playerPlot = nil
-for _, plot in ipairs(plotsFolder:GetChildren()) do
-	local ownerId = plot:GetAttribute("OwnerId")
-	if ownerId == userId then
-		playerPlot = plot
-		break
-	end
-end
-
-if not playerPlot then
-	warn("No plot found for player:", userId)
-	return
-end
-
---------------------------------------------------
--- Get Plants Folder
---------------------------------------------------
-local plantsFolder = playerPlot:WaitForChild("Scripted"):WaitForChild("Plants")
-
---------------------------------------------------
--- Get Shrine Boosts
---------------------------------------------------
-local shrineData = ShrineService.RF.GetShrineState:InvokeServer()
-if not shrineData then
-	warn("Failed to get shrine data from server")
-	return
-end
-
-local growthBoost = shrineData.growthBoost or 0
-local harvestBoost = shrineData.harvestBoost or 0
-print("Growth Boost:", growthBoost, "Harvest Boost:", harvestBoost)
-
---------------------------------------------------
--- Only proceed if boosts are low
---------------------------------------------------
-if growthBoost >= 5 or harvestBoost >= 5 then
-	print("Boosts too high, skipping harvest.")
-	return
-end
-
---------------------------------------------------
--- Find First High-Yield Plant & Harvest
---------------------------------------------------
-for _, plant in ipairs(plantsFolder:GetChildren()) do
-	local unclaimed = plant:GetAttribute("UnclaimedHarvest")
-	if type(unclaimed) == "number" and unclaimed > 1000 then
-		print("High Yield Plant Found:", plant.Name, unclaimed)
-
-		-- Find matching container
-		local container = harvestContainer:FindFirstChild(plant.Name)
-		if not container then
-			warn("No container found for:", plant.Name)
-			continue
-		end
-
-		-- Get container position
-		local position
-		if container:IsA("BasePart") then
-			position = container.Position
-		elseif container:IsA("Model") then
-			position = container:GetPivot().Position
-		else
-			warn("Unsupported container type:", container.ClassName)
-			continue
-		end
-
-		-- Teleport and claim harvest
-		print("Teleporting to:", plant.Name)
-		teleportTo(position)
-		task.wait(2)
-
-		Knit.Services.PlantService.RF.ClaimHarvest:InvokeServer(plant.Name)
-		task.wait(2)
-
+local function harvestRoutine()
+	-- Safe wrapper to catch errors
+	local success, err = pcall(function()
 		--------------------------------------------------
-		-- Find Harvest Tool in Backpack
+		-- Find Player Plot
 		--------------------------------------------------
-		local backpack = player:WaitForChild("Backpack")
-		local harvestTool = nil
-		for _, item in ipairs(backpack:GetChildren()) do
-			if item:IsA("Tool") and item.ToolTip == "Harvest" then
-				harvestTool = item
+		local playerPlot = nil
+		for _, plot in ipairs(plotsFolder:GetChildren()) do
+			local ownerId = plot:GetAttribute("OwnerId")
+			if ownerId == userId then
+				playerPlot = plot
 				break
 			end
 		end
 
-		local inventoryItemId = nil
-		if harvestTool then
-			inventoryItemId = harvestTool:GetAttribute("InventoryItemId")
-			print("Harvest tool InventoryItemId:", inventoryItemId)
-		else
-			warn("No tool with ToolTip 'Harvest' found in backpack.")
+		if not playerPlot then
+			warn("No plot found for player:", userId)
+			return
 		end
 
 		--------------------------------------------------
-		-- Process Offering if InventoryItemId exists
+		-- Get Plants Folder
 		--------------------------------------------------
-		if inventoryItemId then
-			local args = {
-				{ inventoryItemId }
-			}
-			Knit.Services.ShrineService.RF.ProcessOffering:InvokeServer(unpack(args))
-			print("Processed offering for InventoryItemId:", inventoryItemId)
-		else
-			warn("Cannot process offering: InventoryItemId missing.")
+		local plantsFolder = playerPlot:WaitForChild("Scripted"):WaitForChild("Plants")
+
+		--------------------------------------------------
+		-- Get Shrine Boosts
+		--------------------------------------------------
+		local shrineData = ShrineService.RF.GetShrineState:InvokeServer()
+		if not shrineData then
+			warn("Failed to get shrine data from server")
+			return
 		end
 
-		-- Teleport back to base
-		teleportTo(Vector3.new(-395.85, 14.22, 177.90))
+		local growthBoost = shrineData.growthBoost or 0
+		local harvestBoost = shrineData.harvestBoost or 0
+		print("Growth Boost:", growthBoost, "Harvest Boost:", harvestBoost)
 
-		-- Stop after first high-yield plant
-		break
+		-- Only proceed if both boosts < 5
+		if growthBoost >= 5 or harvestBoost >= 5 then
+			print("Boosts too high, skipping harvest.")
+			return
+		end
+
+		--------------------------------------------------
+		-- Find First High-Yield Plant & Harvest
+		--------------------------------------------------
+		for _, plant in ipairs(plantsFolder:GetChildren()) do
+			local unclaimed = plant:GetAttribute("UnclaimedHarvest")
+			if type(unclaimed) == "number" and unclaimed > 1000 then
+				print("High Yield Plant Found:", plant.Name, unclaimed)
+
+				-- Find matching container
+				local container = harvestContainer:FindFirstChild(plant.Name)
+				if not container then
+					warn("No container found for:", plant.Name)
+					continue
+				end
+
+				-- Get container position
+				local position
+				if container:IsA("BasePart") then
+					position = container.Position
+				elseif container:IsA("Model") then
+					position = container:GetPivot().Position
+				else
+					warn("Unsupported container type:", container.ClassName)
+					continue
+				end
+
+				-- Teleport and claim harvest
+				print("Teleporting to:", plant.Name)
+				teleportTo(position)
+				task.wait(2)
+
+				Knit.Services.PlantService.RF.ClaimHarvest:InvokeServer(plant.Name)
+				task.wait(2)
+
+				--------------------------------------------------
+				-- Find Harvest Tool in Backpack
+				--------------------------------------------------
+				local backpack = player:WaitForChild("Backpack")
+				local harvestTool = nil
+				for _, item in ipairs(backpack:GetChildren()) do
+					if item:IsA("Tool") and item.ToolTip == "Harvest" then
+						harvestTool = item
+						break
+					end
+				end
+
+				local inventoryItemId = nil
+				if harvestTool then
+					inventoryItemId = harvestTool:GetAttribute("InventoryItemId")
+					print("Harvest tool InventoryItemId:", inventoryItemId)
+				else
+					warn("No tool with ToolTip 'Harvest' found in backpack.")
+				end
+
+				--------------------------------------------------
+				-- Process Offering if InventoryItemId exists
+				--------------------------------------------------
+				if inventoryItemId then
+					local args = {
+						{ inventoryItemId }
+					}
+					Knit.Services.ShrineService.RF.ProcessOffering:InvokeServer(unpack(args))
+					print("Processed offering for InventoryItemId:", inventoryItemId)
+				else
+					warn("Cannot process offering: InventoryItemId missing.")
+				end
+
+				-- Teleport back to base
+				teleportTo(Vector3.new(-395.85, 14.22, 177.90))
+
+				-- Stop after first high-yield plant
+				break
+			end
+		end
+	end)
+
+	if not success then
+		warn("Error in harvestRoutine:", err)
 	end
 end
 
-print("Harvest routine finished.")
+
+task.spawn(function()
+	while true do
+		harvestRoutine()
+		task.wait(15)
+	end
+end)
