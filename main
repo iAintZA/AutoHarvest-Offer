@@ -131,7 +131,7 @@ for _, plant in ipairs(plantsFolder:GetChildren()) do
 		--------------------------------------------------
 		if inventoryItemId then
 			local args = {
-				{ "4:StoredItem:" .. inventoryItemId }
+				{ inventoryItemId }
 			}
 			Knit.Services.ShrineService.RF.ProcessOffering:InvokeServer(unpack(args))
 			print("Processed offering for InventoryItemId:", inventoryItemId)
