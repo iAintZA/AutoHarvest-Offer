@@ -81,7 +81,7 @@ local function harvestRoutine()
 		--------------------------------------------------
 		for _, plant in ipairs(plantsFolder:GetChildren()) do
 			local unclaimed = plant:GetAttribute("UnclaimedHarvest")
-			if type(unclaimed) == "number" and unclaimed > 100000 then
+			if type(unclaimed) == "number" and unclaimed > 5000 then
 				print("High Yield Plant Found:", plant.Name, unclaimed)
 
 				-- Find matching container
